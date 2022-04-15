@@ -125,7 +125,7 @@ export default {
             email: this.registerForm.email,
             code: this.registerForm.code
           })
-          if (res.flag) {
+          if (res.flag && res.data) {
             this.isExist = res.data
             this.$message.success(res.msg)
             this.$refs.registerForm.resetFields()

@@ -488,7 +488,13 @@ public class CrossConfiguration implements WebMvcConfigurer {
 }
 ~~~
 
-### 5. elementui 上传图片
+### 5. spring 访问不到 controller
+
+> 原因：没有将 module 部署到 tomcat 中
+
+## 二、springmvc 一些功能实现
+
+### 1. elementui 上传图片
 
 #### ① 前端
 
@@ -669,7 +675,7 @@ public ResObj uploadVideo(MultipartFile file, HttpServletRequest request) {
 >
 > 或:	axios.post('url', { 'fileName': file }) 中的 'fileName'
 
-### 6. jwt 实现登录校验
+### 2. jwt 实现登录校验
 
 ~~~
 JSON Web Token，通过数字签名的方式，以JSON对象为载体，在不同的服务终端之间安全的传输信息。
@@ -919,7 +925,7 @@ router.beforeEach(async(to, from, next) => {
 export default router
 ~~~
 
-### 7. mybatis在update中使用动态sql
+### 3. mybatis在update中使用动态sql
 
 ```xml
 // com\kurumi\mapper\UserMapper.xml
@@ -950,11 +956,25 @@ export default router
 >
 > 解决：发现复制粘贴的时候没有将<select id="" ...></select>改为<update id="" ...></update>
 
-### 8. spring 访问不到 controller
+### 4. springmvc 发送邮箱验证码
 
-> 原因：没有将 module 部署到 tomcat 中
+① 导入依赖
 
-![image-20220414111348660](README.assets/image-20220414111348660.png)
+```xml
+<!--邮箱-->
+<dependency>
+  <groupId>org.springframework</groupId>
+  <artifactId>spring-context-support</artifactId>
+  <version>5.0.5.RELEASE</version>
+</dependency>
+<dependency>
+  <groupId>javax.mail</groupId>
+  <artifactId>mail</artifactId>
+  <version>1.4.7</version>
+</dependency>
+```
+
+② 
 
 ## 前端的一些留下的问题
 

@@ -23,7 +23,7 @@ export default {
       player: null,
       dp: null,
       // 评论组件数据
-      avatar: require('@/assets/noface.gif'),
+      avatar: this.$store.state.avatar ? this.$store.state.avatar : require('@/assets/noface.gif'),
       comments: null,
       isCommentShow: true
     }
@@ -37,6 +37,7 @@ export default {
         url: url
       })
     },
+    // 获取视频
     async fetchVideo() {
       const { data: res } = await getVideoById(this.id)
       console.log(res)
@@ -58,6 +59,7 @@ export default {
         // }
       })
     },
+    // 发送评论
     async handleComment(comment) {
       // 去除评论内容首位空格和换行
       comment = comment.replace(/^\s+|\s+$/g, '')
@@ -79,10 +81,11 @@ export default {
       this.$refs.comment.resetComment()
       this.fetchComments()
     },
+    // 获取评论
     async fetchComments() {
-      const { data: res } = await getComments()
+      const { data: res } = await getComments(this.id)
       console.log(res)
-      if (res.flag) {
+      if (res.flag && res.data.length !== 0 && res.data) {
         this.comments = res.data
         // 对评论数据加工为二级
         const data = []
@@ -110,7 +113,7 @@ export default {
           id: this.$store.state.userId
         },
         comUserId: comment.comUser.id,
-        commentId: comment.id,
+        commentId: comment.commentId,
         videoId: this.id,
         content: content,
         comDate: new Date()

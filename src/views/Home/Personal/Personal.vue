@@ -94,12 +94,14 @@ export default {
       const { data: res } = await getUserById(this.$store.state.userId)
       this.$nextTick(() => {
         this.user = res.data
+        console.log(res)
         this.user.sex = this.user.sex ? this.user.sex : 0
         this.user.avatar = this.user.avatar ? this.user.avatar : require('@/assets/noface.gif')
         // 初始化个人资料中数据
-        this.userForm.user = this.user.username
+        this.userForm.username = this.user.username
         this.userForm.avatar = this.user.avatar
         this.userForm.sex = this.user.sex
+        this.setAvatar(this.user.avatar)
       })
     },
     handleClick(tab, event) {
@@ -128,9 +130,7 @@ export default {
       console.log(res)
       if (res.flag && res.data) {
         this.$message.success(res.msg)
-        this.user.avatar = res.data
         this.userForm.avatar = res.data
-        this.setAvatar(res.data)
       } else {
         this.$message.error(res.msg)
       }

@@ -65,7 +65,7 @@
         <div class="grid-content bg-purple">
           <div class="demo-basic--circle">
             <div class="block">
-              <el-avatar :size="50" :src="!comment.avatar? require('@/assets/noface.gif'): comment.avatar"></el-avatar>
+              <el-avatar :size="50" :src="!comment.comUser.avatar? require('@/assets/noface.gif'): comment.comUser.avatar"></el-avatar>
             </div>
           </div>
         </div>
@@ -91,7 +91,7 @@
               <div class="grid-content bg-purple">
                 <div class="demo-basic--circle">
                   <div class="block">
-                    <el-avatar :size="50" :src="!comment2.avatar? require('@/assets/noface.gif'): comment2.avatar"></el-avatar>
+                    <el-avatar :size="50" :src="!comment2.comUser.avatar? require('@/assets/noface.gif'): comment2.comUser.avatar"></el-avatar>
                   </div>
                 </div>
               </div>
@@ -208,13 +208,11 @@ export default {
     resetComment2() {
       this.comContent2 = ''
     },
-    showDialog(commendId, comment) {
+    showDialog(commentId, comment) {
       this.isShowDialog2 = true
-      this.$nextTick(() => {
-        this.tempComment = comment
-        this.tempComment.commendId = commendId
-        this.showDialogIndex = commendId
-      })
+      this.tempComment = comment
+      this.tempComment.commentId = commentId
+      this.showDialogIndex = commentId
     },
     sendComment2() {
       this.$emit('sendComment2', this.tempComment, this.comContent2)
