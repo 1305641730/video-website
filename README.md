@@ -270,10 +270,9 @@ watch: {
 export default {
 	data() {
 		return {
-        isExist: false,
+		...
         isBtnSend: false,
         btnSendInfo: '发送邮箱验证码',
-        timer: null,
         ...
 	}
 }
@@ -281,29 +280,48 @@ methods: {
 	sendEmail() {
 		...
 		// 倒计时30秒之后才能再次发送验证码
-        this.isBtnSend = true
         let count = 30
-        if (!this.timer) {
-          this.timer = setInterval(() => {
-            if (count === 0) {
-              this.btnSendInfo = '发送邮箱验证码'
-              this.isBtnSend = false
-              this.timer = null
-            } else {
-              count--
-              this.btnSendInfo = count + '秒后重试'
-            }
-          }, 1000)
-        }
+      	this.isBtnSend = true
+      	const timer = setInterval(() => {
+        	count--
+        	if (count === 0) {
+        	  clearInterval(timer)
+        	  this.isBtnSend = false
+        	  this.btnSendInfo = '获取验证码'
+        	} else {
+        	  this.btnSendInfo = `${count}秒后重试`
+        	}
+      	}, 1000)
         ...
 	}
 }
 </script>
 ~~~
 
+### 16. vue 路由重复跳转报错
+
+~~~
+Redirected when going from "/xxx" to "/yyy" via a navigation guard.报错
+~~~
+
+解决：
+
+* 方法一：将vue-router版本降低到3.0.7，手动修改
+* 方法二：复制一下代码到router.js中
+
+~~~javascript
+const originalPush = VueRouter.prototype.push
+VueRouter.prototype.push = function push(location, onResolve, onReject) {
+    if (onResolve || onReject) return originalPush.call(this, location, onResolve, onReject)
+    return originalPush.call(this, location).catch(err => err)
+}
+~~~
+
 ## 前端的一些留下的问题
 
 ### 1. vue 中 proxy 的作用
+
+### 2. CSS 如何自适应布局 
 
 # 后端
 
@@ -956,7 +974,7 @@ export default router
 >
 > 解决：发现复制粘贴的时候没有将<select id="" ...></select>改为<update id="" ...></update>
 
-### 4. springmvc 发送邮箱验证码
+### 4. springmvc 发送邮箱验证码(QQ邮箱)
 
 ① 导入依赖
 
@@ -974,7 +992,226 @@ export default router
 </dependency>
 ```
 
-② 
+② 开启邮箱SMTP服务
+
+* 打开 qq 邮箱，设置-----账户-----开启SMTP服务(往下翻)
+
+![image-20220415213605500](README.assets/image-20220415213605500.png)
+
+![image-20220415213941565](README.assets/image-20220415213941565.png)
+
+③ 编写 mail.properties 文件(写入javax.mail所需要的一些参数)
+
+```properties
+#服务器主机名
+#用的是qq邮箱，所以是smtp.qq.com
+mail.smtp.host=smtp.qq.com
+mail.smtp.port=25
+#开启smtp的qq邮箱
+mail.smtp.username=1305641730@qq.com
+#客户端授权码(上面开启smtp服务后----生成授权码)
+mail.smtp.password=kodcjsvcflmwjiee
+#编码字符
+mail.smtp.defaultEncoding=utf-8
+#是否进行用户名密码校验
+mail.smtp.auth=true
+#设置超时时间
+mail.smtp.timeout=20000
+```
+
+④ 往spring配置文件中编写 JavaMailSender bean对象
+
+```xml
+// applicationContext.xml
+<!--加载多个.properties时要加上：ignore-unresolvable="true" 否则报错-->
+<!--加载jdbc.properties-->
+<context:property-placeholder location="classpath:jdbc.properties, classpath:mail.properties" ignore-unresolvable="true"/>
+
+<!--配置邮件接口-->
+<bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+    <property name="host" value="${mail.smtp.host}"/>
+    <property name="port" value="${mail.smtp.port}"/>
+    <property name="username" value="${mail.smtp.username}"/>
+    <property name="password" value="${mail.smtp.password}"/>
+    <property name="defaultEncoding" value="${mail.smtp.defaultEncoding}"/>
+    <property name="javaMailProperties">
+        <props>
+            <prop key="mail.smtp.auth">${mail.smtp.auth}</prop>
+            <prop key="mail.smtp.timeout">${mail.smtp.timeout}</prop>
+        </props>
+    </property>
+</bean>
+```
+
+⑤ 在Controller中发送邮件并保存验证码
+
+```java
+// com.kurumi.controller.UserController
+@Autowired
+private JavaMailSender javaMailSender;
+
+@Value("${mail.smtp.username}")
+private String emailSender;
+
+// username 作为 服务器session保存验证码的键值，email是要发送的邮箱地址
+@PostMapping("/sendcode")
+public ResObj sendCode(@RequestParam String username, @RequestParam String email, HttpSession session, HttpServletRequest request) {
+    try {
+        // 生成6为验证码
+        String Captcha = String.valueOf(new Random().nextInt(899999) + 100000);
+        System.out.println(username + "," + Captcha + "," + emailSender);
+        request.getSession().setAttribute(username, Captcha);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        // 发送人邮件地址
+        message.setFrom(emailSender);
+        message.setTo(emailReceiver);
+        message.setSubject("验证码");
+        message.setText("接收到的验证码为：" + Captcha);
+        javaMailSender.send(message);
+        return new ResObj(true, "验证码发送成功，请注意查看邮箱！", true);
+    } catch (Exception e) {
+        return new ResObj(true, "验证码发送失败，请稍后再试！", false);
+    }
+}
+```
+
+> 注意： 
+>
+> ​	我的springmvc，springmvc的配置文件只扫描controller层，而spring配置文件扫描除controller以外的包，所以要想在controller中使用@Value注入mail.properties中的属性，则需要在springmvc的配置文件中加载mail.properties。
+>
+> ​	或者不采用注入的方式，直接将mail.properties中mail.smtp.username对应的值写在controller中。
+>
+> ```xml
+> // spring-mvc.xml
+> <context:property-placeholder location="classpath:mail.properties"/>
+> ```
+
+⑥ 采用 ajax(或者axios) 进行异步请求 springmvc 来发送邮箱验证码所产生的问题
+
+> 如果没有采用前后端分离，则无需考虑以下问题
+
+> 由于后台springmvc采用session会话保存验证码，以便前台拿到验证码后又发送过来效验，但是由于使用axios异步请求后端，此时后台的sessionid并不会返回给前端，前端每次请求也不会携带sessionid，这样就导致前台第二次发送键值来后台时，后台session用这个键值取出的数据就为null。
+
+~~~
+session会话知识补充：
+	网络请求每次请求的request对象中都拥有session域，每次前端请求，后端都能够通过HttpServletRequest.getSession()来获取此次的session，然后会自动将这个session的jsessionid写入HttpServletResponse的response对象中，从而前台的请求头中Response Headers中就有此次会话的jsessionid，此后前台请求头的Request Headers中就会带有拥有该jsessionid的cookie，此时每次前端请求后台都是同一个session，后台不同controller中也能取到session中的值。
+~~~
+
+![image-20220415221139085](README.assets/image-20220415221139085.png)
+
+~~~
+	但是由于前后端分离，前台不会携带cookie，后台也不会往前端Headers中设置jsessionid。所以在前端的axios或者ajax中加上withCredentials = true,后台的response对象要将Access-Control-Allow-Credentials设置为true。
+	但是实际测试并无作用(我使用的是vue2(2.6.14)+springmvc)
+~~~
+
+实际解决：
+
+参考：https://blog.csdn.net/Charonmomo/article/details/122818540
+
+​			https://blog.csdn.net/weixin_44441196/article/details/115398563?spm=1001.2101.3001.6650.3&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-3.pc_relevant_aa&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-3.pc_relevant_aa&utm_relevant_index=6
+
+① 前端 vue
+
+~~~javascript
+// axios.js
+import axios from 'axios'
+
+axios.defaults.baseURL = 'http://127.0.0.1:8080/api'
+axios.defaults.withCredentials = true
+
+export default axios
+~~~
+
+~~~javascript
+// vue.config.js
+const { defineConfig } = require('@vue/cli-service')
+module.exports = defineConfig({
+  transpileDependencies: true,
+  devServer: {
+    proxyTable: {
+      '/api': {
+        target: 'http://127.0.0.1:8080', 
+        changeOrigin: true, // 接口跨域
+        ws: true,
+        pathRewrite: {
+          '^/api': 'http://127.0.0.1:8081' // 要rewrite的，意思是将
+http://127.0.0.1:8080(服务器) 重写为  http://127.0.0.1:8081(本地) 因为后台允许保存jsessionid的域名是本地       
+        }
+      }
+    }
+  }
+})
+~~~
+
+> 注意：这里的127.0.0.1:8081和下面springmvc中的Access-Control-Allow-Origin中的127.0.0.1:8081不能写为localhost:8081，不然无效，(待解决)
+
+![image-20220415222408400](README.assets/image-20220415222408400.png)
+
+② 后台 springmvc 配置跨域和允许携带cookie
+
+```java
+// com.kurumi.filter.CORSFilter
+public class CORSFilter implements Filter {
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+
+    }
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
+        response.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:8081");
+        response.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, PUT");
+        response.setHeader("Access-Control-Allow-Credentials", "true"); // 允许携带cookie
+        response.setHeader("Access-Control-Max-Age", "3600");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+        filterChain.doFilter(servletRequest, servletResponse);
+    }
+
+    @Override
+    public void destroy() {
+
+    }
+}
+```
+
+```xml
+// web.xml
+<!--CORS Filter-->
+<filter>
+    <filter-name>CORSFilter</filter-name>
+    <filter-class>com.kurumi.filter.CORSFilter</filter-class>
+</filter>
+<filter-mapping>
+    <filter-name>CORSFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
+```
+
+### 5. mybatis 执行多条 SQL
+
+~~~
+首先在数据库连接URL上加上allowMultiQueries=true,默认mysql是不支持一次执行多条SQL语句的。
+~~~
+
+~~~~
+jdbc.driver=com.mysql.cj.jdbc.Driver
+jdbc.url=jdbc:mysql://127.0.0.1:3306/video_db?allowMultiQueries=true
+jdbc.username=root
+jdbc.password=root
+~~~~
+
+```xml
+// mapper.xml
+<delete id="deleteVideoById" parameterType="int">
+    delete from tbl_comment where videoId = #{id};
+    delete from tbl_video where id = #{id}
+</delete>
+```
+
+
 
 ## 前端的一些留下的问题
 

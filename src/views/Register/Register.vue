@@ -18,9 +18,12 @@
         </el-input>
       </el-form-item>
       <el-form-item prop="email">
-        <el-input v-model.trim="registerForm.email" autocomplete="off" placeholder="请输入邮箱">
-          <input class="email-input" type="button" slot="append" :disabled="isBtnSend" @click="sendEmailCode" v-model="btnSendInfo" />
-        </el-input>
+        <el-col :span="15">
+          <el-input v-model.trim="registerForm.email" autocomplete="off" placeholder="请输入邮箱"></el-input>
+        </el-col>
+        <el-col :span="4" :offset="2">
+          <el-button type="primary" :disabled="isBtnSend" @click="sendEmailCode">{{ btnSendInfo }}</el-button>
+        </el-col>
       </el-form-item>
       <el-form-item prop="code">
         <el-input v-model.trim="registerForm.code" autocomplete="off" placeholder="请输入验证码">
@@ -40,7 +43,7 @@ export default {
   name: 'register-vue',
   data() {
     const validateRePass = (rule, value, callback) => {
-      if (value === '') {
+      if (value === '' || value === null) {
         callback(new Error('请输入密码'))
       } else if (value !== this.registerForm.password) {
         callback(new Error('两次输入密码不一致!'))
@@ -61,9 +64,7 @@ export default {
     return {
       isExist: false,
       isBtnSend: false,
-      btnSendInfo: '发送邮箱验证码',
-      timer: null,
-      cookie: '',
+      btnSendInfo: '获取验证码',
       registerForm: {
         username: '',
         password: '',
@@ -86,20 +87,18 @@ export default {
       console.log(this.registerForm)
       if (!this.isExist && this.registerForm.email !== '' && this.registerForm.username !== '') {
         // 倒计时30秒之后才能再次发送验证码
-        this.isBtnSend = true
         let count = 30
-        if (!this.timer) {
-          this.timer = setInterval(() => {
-            if (count === 0) {
-              this.btnSendInfo = '发送邮箱验证码'
-              this.isBtnSend = false
-              this.timer = null
-            } else {
-              count--
-              this.btnSendInfo = count + '秒后重试'
-            }
-          }, 1000)
-        }
+        this.isBtnSend = true
+        const timer = setInterval(() => {
+          count--
+          if (count === 0) {
+            clearInterval(timer)
+            this.isBtnSend = false
+            this.btnSendInfo = '获取验证码'
+          } else {
+            this.btnSendInfo = `${count}秒后重试`
+          }
+        }, 1000)
         const { data: res } = await sendCode(this.registerForm.username, this.registerForm.email)
         console.log(res)
         // if (res.flag && res.data) {
@@ -166,8 +165,9 @@ export default {
     justify-content: center;
     align-content: center;
     text-align: center;
+    box-sizing: border-box;
     border-radius: 20px;
-    padding: 30px 10px 15px;
+    padding: 30px 30px 15px;
     background-color: white;
     margin: 100px 0;
     width: 430px;
@@ -194,16 +194,6 @@ export default {
     /deep/ .el-input-group__append {
       padding: 0 10px;
     }
-    /deep/ .email-input {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: inline-block;
-      cursor: pointer;
-    }
   }
-}
-.el-input {
-  width: 320px;
 }
 </style>

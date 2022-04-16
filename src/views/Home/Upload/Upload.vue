@@ -111,6 +111,14 @@ export default {
       this.types = res.data
     },
     async submitForm() {
+      if (this.uploadVideoInfo.videoUrl === '') {
+        this.$message.error('请上传视频后再提交')
+        return false
+      }
+      if (this.uploadVideoInfo.videoCoverUrl === '') {
+        this.$message.error('请上传视频封面后再提交')
+        return false
+      }
       this.uploadVideoInfo.uploadDate = new Date()
       const { data: res } = await uploadVideoInfo(this.uploadVideoInfo)
       console.log(res)
@@ -129,6 +137,11 @@ export default {
   height: 600px;
   background-color: rgb(84, 92, 100);
 }
+
+.upload-container {
+  margin-top: 20px;
+}
+
 .upload-content {
   margin: 0 6rem;
   display: flex;

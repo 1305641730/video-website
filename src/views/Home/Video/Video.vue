@@ -9,7 +9,9 @@
       </el-carousel>
     </div>
     <!-- 视频列表 -->
-    <VideoList :videos="videos"></VideoList>
+    <div class="video-list">
+      <VideoList :videos="videos"></VideoList>
+    </div>
   </div>
 </template>
 
@@ -43,13 +45,14 @@ export default {
 
 <style lang='less' scoped>
 .carousel {
-  margin: 15px 5rem;
+  margin: 15px 0;
   img {
     display: block;
     width: 100%;
     height: 100%;
   }
 }
+
 .el-carousel__item {
   background-color: #99a9bf;
 }

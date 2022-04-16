@@ -12,6 +12,7 @@
 <script>
 import Header from '@/components/Header.vue'
 import { mapMutations } from 'vuex'
+import { getUserById } from '@/api/user.js'
 
 export default {
   name: 'home-vue',
@@ -25,10 +26,17 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(['setUserId']),
+    ...mapMutations(['setUserName', 'setAvatar']),
     handleLoginOut() {
       this.setUserId(null)
       localStorage.removeItem('token')
+      this.refreshHeader()
+    },
+    async updateVuexUserInfo() {
+      const { data: res } = await getUserById(this.$store.state.userId)
+      console.log('index.vue user=====', res)
+      this.setUserName(res.data.username)
+      this.setAvatar(res.data.avatar)
       this.refreshHeader()
     },
     refreshHeader() {
@@ -40,14 +48,25 @@ export default {
   },
   // 监听vuex中avatar数据变化
   computed: {
-    avatarData() {
-      return this.$store.state.avatar
+    userIdData() {
+      return this.$store.state.userId
+    },
+    userNameData() {
+      return this.$store.state.userId
+    },
+    userAvatarData() {
+      return this.$store.state.userId
     }
   },
   watch: {
-    avatarData() {
-      this.avatar = this.$store.state.avatar
-      this.refreshHeader()
+    userIdData() {
+      this.updateVuexUserInfo()
+    },
+    userNameData() {
+      this.updateVuexUserInfo()
+    },
+    userAvatarData() {
+      this.updateVuexUserInfo()
     }
   }
 }
@@ -66,7 +85,9 @@ body {
   box-sizing: border-box;
 }
 .el-main {
-  padding: 15px;
+  max-width: 2540px;
+  min-width: 1080px;
+  padding: 0 64px;
   padding-top: 0;
 }
 </style>
