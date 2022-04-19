@@ -14,7 +14,7 @@
     </div>
     <!-- 视频列表 -->
     <div class="video-list">
-      <VideoList :videos="videos"></VideoList>
+      <VideoList :videos="videos" :total="total" @handleCurrentChange="CurrentPageChange"></VideoList>
     </div>
   </div>
 </template>
@@ -29,7 +29,10 @@ export default {
     return {
       imglist: [require('@/assets/carousel.jpg'), require('@/assets/carousel2.jpg'), require('@/assets/carousel3.jpg'), require('@/assets/carousel4.jpg')],
       videos: null,
-      tags: []
+      tags: [],
+      pageNum: 1,
+      pageSize: 12,
+      total: 0
     }
   },
   components: {
@@ -37,13 +40,19 @@ export default {
   },
   methods: {
     async fetchVideos() {
-      const { data: res } = await getVideos()
-      this.videos = res.data
-      // console.log(res)
+      const { data: res } = await getVideos(this.pageNum, this.pageSize)
+      this.videos = res.data.list
+      this.total = res.data.total
+      console.log(res)
     },
     async fetchVideoTypes() {
       const { data: res } = await getVideoTypes()
       this.tags = res.data
+    },
+    CurrentPageChange(currentPage) {
+      console.log('当前页：' + currentPage)
+      this.pageNum = currentPage
+      this.fetchVideos()
     }
   },
   created() {

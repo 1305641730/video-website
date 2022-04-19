@@ -28,7 +28,7 @@
             <el-menu-item index="2">最多播放</el-menu-item>
           </el-menu>
 
-          <VideoList :videos="videos" :isDelete="true" @handleDelete="deleteVideo"></VideoList>
+          <VideoList :videos="videos" :total="pageInfo.total" :isDelete="true" @handleDelete="deleteVideo" @handleCurrentChange="myVideoPageChange"></VideoList>
           <!-- 个人投稿视频数为0时显示 -->
           <div class="personal-video-mask" v-if="videos === null || videos.length === 0">
             还没有投稿视频喔，<router-link to="/upload">立即投稿</router-link>
@@ -37,7 +37,7 @@
 
         <!-- 收藏 -->
         <el-tab-pane label="收藏" name="second">
-          <VideoList :videos="collections" :isCollection="true" @handleCollection="cancelCollection"></VideoList>
+          <VideoList :videos="collections" :isCollection="true" :total="pageInfo.total" @handleCollection="cancelCollection" @handleCurrentChange="myCollectionPageChange"></VideoList>
         </el-tab-pane>
 
         <!-- 个人资料 -->
@@ -104,7 +104,7 @@
 
 <script>
 import { getUserById, updateUser, uploadAvatar, sendCode, updatePwd } from '@/api/user.js'
-import { getVideosById, deleteVideo, getVideosBykeyword, getCollectionVideos } from '@/api/video.js'
+import { getVideosById, deleteVideo, getVideosByUserAndTitle, getCollectionVideos } from '@/api/video.js'
 import { deleteCollection } from '@/api/collection.js'
 import { mapMutations } from 'vuex'
 import VideoList from '@/components/VideoList.vue'
@@ -141,6 +141,11 @@ export default {
       collections: null,
       activeIndex: '1',
       searchKeyWord: '',
+      pageInfo: {
+        pageNum: 1,
+        pageSize: 12,
+        total: 0
+      },
       // 个人资料表单数据
       userForm: {
         username: '',
@@ -210,11 +215,17 @@ export default {
     },
     // 获取个人投稿视频
     async fetchVideos() {
-      const { data: res } = await getVideosById(this.$store.state.userId)
+      const { data: res } = await getVideosById(this.$store.state.userId, this.pageInfo.pageNum, this.pageInfo.pageSize)
       console.log(res)
-      if (res.flag) {
-        this.videos = res.data
+      if (res.flag && res.data) {
+        this.videos = res.data.list
+        this.total = res.data.total
       }
+    },
+    // 处理个人视频分页点击事件
+    myVideoPageChange(currentPage) {
+      this.pageInfo.pageNum = currentPage
+      this.fetchVideos()
     },
     // 处理我的视频下导航菜单选择事件
     handleSelect(key, keyPath) {
@@ -227,9 +238,18 @@ export default {
     },
     // 获取用户收藏视频
     async fetchUserCollections() {
-      const { data: res } = await getCollectionVideos(this.$store.state.userId)
-      console.log(res)
-      this.collections = res.data
+      const { data: res } = await getCollectionVideos(this.$store.state.userId, this.pageInfo.pageNum, this.pageInfo.pageSize)
+      this.collections = res.data.list
+      if (res.flag && res.data) {
+        this.collections = res.data.list
+        this.total = res.data.total
+      }
+      console.log(this.collections)
+    },
+    // 处理用户收藏分页点击事件
+    myCollectionPageChange(currentPage) {
+      this.pageInfo.pageNum = currentPage
+      this.fetchUserCollections()
     },
     // 取消收藏
     async cancelCollection(userId, videoId, title) {
@@ -354,13 +374,15 @@ export default {
   },
   watch: {
     // 监听搜索视频框关键字
-    async searchKeyWord() {
-      const video = { user: { id: this.$store.state.userId }, title: this.searchKeyWord }
-      console.log(video)
-      const { data: res } = await getVideosBykeyword(video)
-      console.log(res)
-      if (res.flag && res.data.length !== 0) {
-        this.videos = res.data
+    async searchKeyWord(newVal) {
+      if (newVal !== '') {
+        const { data: res } = await getVideosByUserAndTitle(this.$store.state.userId, this.searchKeyWord)
+        console.log(res)
+        if (res.flag && res.data.length !== 0) {
+          this.videos = res.data
+        }
+      } else {
+        this.fetchVideos()
       }
     }
   }

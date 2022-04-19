@@ -21,6 +21,8 @@
         </el-card>
       </el-col>
     </el-row>
+    <el-pagination background layout="prev, pager, next" :total="total" :page-count="2" :hide-on-single-page="isShow" @current-change="handleCurrentChange">
+    </el-pagination>
   </div>
 </template>
 
@@ -34,6 +36,10 @@ export default {
         return []
       }
     },
+    total: {
+      type: Number,
+      default: 0
+    },
     isDelete: {
       type: Boolean,
       default: false
@@ -46,7 +52,8 @@ export default {
   data() {
     return {
       isShowDelete: this.isDelete,
-      isShowCollection: this.isCollection
+      isShowCollection: this.isCollection,
+      isShow: this.total <= 12
     }
   },
   methods: {
@@ -58,10 +65,13 @@ export default {
     },
     handleCollection(userId, videoId, title) {
       this.$emit('handleCollection', userId, videoId, title)
+    },
+    handleCurrentChange(val) {
+      this.$emit('handleCurrentChange', val)
     }
   },
-  updated() {
-    console.log(this.videos)
+  mounted() {
+    console.log(this.isShow)
   }
 }
 </script>
@@ -106,6 +116,13 @@ export default {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+  }
+  .el-pagination {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
   }
 }
 </style>

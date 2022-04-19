@@ -249,6 +249,7 @@ export default {
         } else {
           this.commentsData = this.commentsData.concat(this.obj[this.objKey]) // 合并后一组评论
         }
+        console.log(this.commentsData)
       }
     }
   },
@@ -261,14 +262,13 @@ export default {
       if (this.commentsData.length > this.groupcount) {
         this.isLoading = true
         // 向上取整，一共多少组
-        for (let i = 0; i < Math.ceil(this.comments.length / this.groupcount); i++) {
-          this.obj[i] = this.comments.slice(this.groupcount * i, this.groupcount * i + this.groupcount)
+        for (let i = 0; i < Math.ceil(this.commentsData.length / this.groupcount); i++) {
+          this.obj[i] = this.commentsData.slice(this.groupcount * i, this.groupcount * i + this.groupcount)
         }
         this.commentsData = this.obj[this.objKey] // 初始加载前10条(第一组)
       } else {
         this.isLoading = false
       }
-      console.log(this.commentsData)
     }
   },
   mounted() {

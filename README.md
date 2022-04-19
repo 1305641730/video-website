@@ -317,6 +317,140 @@ VueRouter.prototype.push = function push(location, onResolve, onReject) {
 }
 ~~~
 
+### 17. vue 实现评论滚动加载
+
+* 子组件(评论组件)
+
+~~~vue
+<template>  
+  ...
+  <div>    
+    <div class="loading-state">
+      <span v-if="isLoading"><i class="el-icon-loading" />正在加载中....</span>
+      <span v-else>没有更多评论</span>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'comment-vue',
+  props: {
+    ...
+    comments: null,
+    groupcount: {
+      type: Number,
+      default: 10
+    }
+  },
+  data() {
+    return {
+      ...
+      isLoading: false,
+      commentsData: this.comments,
+      // 评论数据分组数据
+      obj: [], // 用来存放评论数组
+      objKey: 0 // 用来存放数组对象的下标
+    }
+  },
+  methods: {
+    ...
+    // 浏览器滚动监听事件
+    scrollBrowse() {
+      // this.$emit('scrollBrowse')
+      // 获取窗口高度
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
+      // 获取滚动的高度
+      const scrollHeight = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+      // 获取文档的高度
+      const docHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+
+      if (windowHeight + scrollHeight >= docHeight) {
+        // 触底加载后续内容
+        console.log('触底')
+        this.objKey++
+        if (this.objKey > this.obj.length - 1) {
+          this.isLoading = false
+        } else {
+          this.commentsData = this.commentsData.concat(this.obj[this.objKey]) // 合并后一组评论
+        }
+      }
+    }
+  },
+  created() {
+    // 初始化评论数据分组数据
+    this.obj = []
+    this.objKey = 0
+    // 将评论数据按 传过来的groupcount(默认10) 条一组方式进行分组
+    if (this.commentsData) {
+      if (this.commentsData.length > this.groupcount) {
+        this.isLoading = true
+        // 向上取整，一共多少组
+        for (let i = 0; i < Math.ceil(this.commentsData.length / this.groupcount); i++) {
+          this.obj[i] = this.commentsData.slice(this.groupcount * i, this.groupcount * i + this.groupcount)
+        }
+        this.commentsData = this.obj[this.objKey] // 初始加载前10条(第一组)
+      } else {
+        this.isLoading = false
+      }
+      console.log(this.commentsData)
+    }
+  },
+  mounted() {
+    // 给窗口添加滚动事件
+    window.addEventListener('scroll', this.scrollBrowse)
+  },
+  beforeDestroy() {
+    // 移除窗口滚动事件
+    window.removeEventListener('scroll', this.scrollBrowse)
+  }
+}
+</script>
+...
+~~~
+
+* 父组件
+
+~~~vue
+<Comment v-if="isCommentShow" ref="comment" :avatar="avatar" :comments="comments" :groupcount="10" @sendComment="handleComment" @sendComment2="handleComment2"></Comment>
+~~~
+
+### 18. vue 使用 el-popover 带有padding如何消除（失效）
+
+> 注意：我出现的问题是将el-popover使用在子组件中，想在子组件的<style></style>中去除padding，结果无效。打开F12仔细观察，发现popover的弹出框是渲染在了<body>下面一级，想要修改样式只能在该界面所属父组件中修改。
+
+![image-20220419224055450](README.assets/image-20220419224055450.png)
+
+~~~vue
+// 父组件
+<style>
+.el-popover {
+  padding: 0;
+}
+</style>
+~~~
+
+### 19. Css 设置一块高宽为浏览器高度的背景图
+
+~~~
+<div class="bg"></div>
+...
+<style>
+...
+.bg {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    background: url('@/assets/message-bg.jpg') center/cover no-repeat fixed;
+    -webkit-background-size: cover;
+}
+</style>
+~~~
+
+> 注意：此时要为其它元素设置权重z-index，否则其它元素无法显示。
+
 ## 前端的一些留下的问题
 
 ### 1. vue 中 proxy 的作用

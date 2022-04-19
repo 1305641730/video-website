@@ -9,14 +9,27 @@
       <!-- 搜索框 -->
       <el-col :span="8" :offset="4">
         <div class="search-box">
-          <el-input v-model="search" placeholder="请输入要搜索的内容" :rows="4"></el-input>
+          <el-input v-model="search" placeholder="请输入要搜索的内容" :rows="4" v-show="isShowSearch" @keyup.enter.native="searchContent">
+            <el-button slot="append" icon="el-icon-search" @click="searchContent"></el-button>
+          </el-input>
         </div>
       </el-col>
+      <!-- 用户头像 -->
       <el-col :span="4">
         <el-menu-item index="1" @click="toPersonal">
-          <el-avatar :src="avatarUrl"></el-avatar>
+          <el-popover placement="bottom" trigger="hover" v-model="isVisible">
+            <el-card class="box-card">
+              <div class="item">
+                <router-link to="/personal"><i class="el-icon-user-solid"></i><span>个人中心</span></router-link>
+              </div>
+              <div class="item" @click="toSystemInfo"><i class="el-icon-message"></i><span>系统消息</span></div>
+              <div class="item" @click="toReplyToMe"><i class="el-icon-chat-dot-round"></i><span>回复我的</span></div>
+            </el-card>
+            <el-avatar slot="reference" :src="avatarUrl"></el-avatar>
+          </el-popover>
         </el-menu-item>
       </el-col>
+      <!-- 用户登录注册 -->
       <el-col :span="2">
         <el-menu-item index="1">
           <div v-if="!this.$store.state.userId">
@@ -43,10 +56,18 @@
 <script>
 export default {
   name: 'headear-vue',
-  props: ['avatarUrl'],
+  props: {
+    avatarUrl: null,
+    isShowSearch: {
+      type: Boolean,
+      default: true
+    }
+  },
   data() {
     return {
-      search: ''
+      search: '',
+      // 是否显示头像下面列表
+      isVisible: false
     }
   },
   methods: {
@@ -55,6 +76,15 @@ export default {
     },
     toPersonal() {
       this.$emit('toPersonal')
+    },
+    searchContent() {
+      this.$emit('searchContent', this.search)
+    },
+    toSystemInfo() {
+      this.$emit('toSystemInfo')
+    },
+    toReplyToMe() {
+      this.$emit('toReplyToMe')
     }
   }
 }
@@ -98,5 +128,30 @@ export default {
   line-height: 50px;
   height: 50px;
   text-align: center;
+}
+.box-card {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  justify-content: space-around;
+  /deep/ .el-card__body {
+    width: 100%;
+    .item {
+      cursor: pointer;
+      width: 100%;
+      margin: 0 10px;
+      font-size: 14px;
+      padding: 5px 0;
+      text-align: center;
+      span {
+        margin-left: 5px;
+      }
+    }
+  }
+  .item:hover {
+    background-color: #f1f1f1;
+  }
 }
 </style>

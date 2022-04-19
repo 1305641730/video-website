@@ -1,7 +1,7 @@
 <template>
   <div class="vuedetail-container">
     <div class="video_left">
-      <h3 class="video-title">{{ videoDate.title }}</h3>
+      <h1 class="video-title">{{ videoDate.title }}</h1>
       <div class="dplayer" ref="dplayer"></div>
       <div class="video-star-co-view">
         <span class="video-sapn" @click.stop="updateStars">
@@ -67,6 +67,9 @@ export default {
     async updateStars() {
       const { data: res } = await addStars({ id: this.id, stars: 1 })
       console.log(res)
+      if (res.flag && res.data) {
+        this.$message.success('点赞成功！')
+      }
       this.videoDate.stars++
     },
     // 更新收藏数，并更新收藏数据
@@ -75,7 +78,9 @@ export default {
       const collection = { userId: this.$store.state.userId, videoId: this.videoId, collectionDate: new Date() }
       const { data: res } = await addCollections({ video: video, collection: collection })
       this.videoDate.collections++
-      console.log(res)
+      if (res.flag && res.data) {
+        this.$message.success(res.msg)
+      }
     },
     // 获取视频
     async fetchVideo() {

@@ -1,7 +1,7 @@
 <template>
   <el-container>
     <el-header style="height: 50px;">
-      <Header @loginOut="handleLoginOut" @toPersonal="$router.push('/personal')" v-if="isResetHeader" :avatarUrl="avatar" />
+      <Header @loginOut="handleLoginOut" @toPersonal="$router.push('/personal')" @searchContent="handleSearch" @toSystemInfo="toSystemInfo" @toReplyToMe="toReplyToMe" v-if="isResetHeader" :isShowSearch="isShowSearch" :avatarUrl="avatar" />
     </el-header>
     <el-main>
       <router-view></router-view>
@@ -22,6 +22,7 @@ export default {
   data() {
     return {
       isResetHeader: true,
+      isShowSearch: true,
       avatar: this.$store.state.avatar ? this.$store.state.avatar : require('@/assets/noface.gif')
     }
   },
@@ -45,6 +46,21 @@ export default {
       this.$nextTick(() => {
         this.isResetHeader = true
       })
+    },
+    handleSearch(content) {
+      this.isShowSearch = false
+      if (this.search !== '') {
+        this.$router.push('/search/' + content)
+      }
+    },
+    // 跳转至 系统消息 界面
+    toSystemInfo() {
+      // this.$router.push(this.$store.state.userId + '/message/sysinfo')
+      this.$router.push(this.$store.state.userId + '/message')
+    },
+    // 跳转至 回复我的 消息界面
+    toReplyToMe() {
+      this.$router.push(this.$store.state.userId + '/message/replay')
     }
   },
   computed: {
@@ -68,6 +84,14 @@ export default {
     },
     userAvatarData() {
       this.updateVuexUserInfo()
+    },
+    $route(to) {
+      if (to.name === 'videos') {
+        this.isShowSearch = true
+        this.refreshHeader()
+      } else {
+        this.isShowSearch = false
+      }
     }
   }
 }
@@ -84,11 +108,15 @@ body {
 .el-header {
   padding: 0;
   box-sizing: border-box;
+  z-index: 999;
 }
 .el-main {
   max-width: 2540px;
   min-width: 1080px;
   padding: 0 64px;
   padding-top: 0;
+}
+.el-popover {
+  padding: 0;
 }
 </style>

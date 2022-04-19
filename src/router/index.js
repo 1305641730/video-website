@@ -20,8 +20,16 @@ const router = new VueRouter({
         },
         // 视频列表页
         {
+          name: 'videos',
           path: 'videos',
           component: () => import('@/views/Home/Video/Video.vue')
+        },
+        // 视频搜索页
+        {
+          name: 'videosearch',
+          path: 'search/:content',
+          component: () => import('@/views/Home/VideoSearch/VideoSearch.vue'),
+          props: true
         },
         // 视频播放页
         {
@@ -34,6 +42,21 @@ const router = new VueRouter({
           name: 'personal',
           path: 'personal',
           component: () => import('@/views/Home/Personal/Personal.vue')
+        },
+        // 消息界面
+        {
+          path: ':userid/message',
+          component: () => import('@/views/Home/Message/Message.vue'),
+          children: [
+            {
+              path: '/sysinfo',
+              component: () => import('@/views/Home/Message/Message.vue')
+            },
+            {
+              path: '/replay',
+              component: () => import('@/views/Home/Message/Message.vue')
+            }
+          ]
         }
       ]
     },

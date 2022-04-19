@@ -1,10 +1,11 @@
 import axios from './axios.js'
 
-export const getVideos = () => axios.get('/videos')
+export const getVideos = (pageNum, pageSize) => axios.get('/videos/' + pageNum + '/' + pageSize)
 export const getVideoById = (id) => axios.get('/videos/' + id)
-export const getVideosById = (id) => axios.get('/videos/userid/' + id)
-export const getVideosBykeyword = (video) => axios.post('/videos/keyword', video)
-export const getCollectionVideos = (id) => axios.get('/videos/collection?id=' + id)
+export const getVideosById = (userId, pageNum, pageSize) => axios.get('/videos/userid/' + userId + '/' + pageNum + '/' + pageSize)
+export const getVideosByUserAndTitle = (userId, title) => axios.get('/videos/keyword/' + userId + '/' + title)
+export const getVideosBykeyword = (content) => axios.get('/videos/keyword?content=' + content)
+export const getCollectionVideos = (userId, pageNum, pageSize) => axios.get('/videos/collection/' + userId + '/' + pageNum + '/' + pageSize)
 export const addViews = (video) => axios.put('/videos', video)
 export const addStars = (video) => axios.put('/videos', video)
 export const addCollections = (params) => axios.post('/videos/collection', params)
