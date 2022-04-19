@@ -26,7 +26,7 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(['setUserName', 'setAvatar']),
+    ...mapMutations(['setUserName', 'setAvatar', 'setUserId']),
     handleLoginOut() {
       this.setUserId(null)
       localStorage.removeItem('token')
@@ -37,6 +37,7 @@ export default {
       console.log('index.vue user=====', res)
       this.setUserName(res.data.username)
       this.setAvatar(res.data.avatar)
+      this.avatar = res.data.avatar
       this.refreshHeader()
     },
     refreshHeader() {
@@ -46,18 +47,18 @@ export default {
       })
     }
   },
-  // 监听vuex中avatar数据变化
   computed: {
     userIdData() {
       return this.$store.state.userId
     },
     userNameData() {
-      return this.$store.state.userId
+      return this.$store.state.username
     },
     userAvatarData() {
-      return this.$store.state.userId
+      return this.$store.state.avatar
     }
   },
+  // 监听vuex中avatar数据变化
   watch: {
     userIdData() {
       this.updateVuexUserInfo()

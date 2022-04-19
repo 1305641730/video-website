@@ -36,7 +36,9 @@
         </el-tab-pane>
 
         <!-- 收藏 -->
-        <el-tab-pane label="收藏" name="second">收藏</el-tab-pane>
+        <el-tab-pane label="收藏" name="second">
+          <VideoList :videos="collections" :isCollection="true" @handleCollection="cancelCollection"></VideoList>
+        </el-tab-pane>
 
         <!-- 个人资料 -->
         <el-tab-pane label="个人资料" name="third">
@@ -45,7 +47,7 @@
               <el-form-item label="头像">
                 <el-upload class="avatar-uploader" action="#" :show-file-list="false" :http-request="handleUploadAvatar">
                   <div class="avatar-div">
-                    <el-avatar :size="60" key="cover" :src="userForm.avatar">
+                    <el-avatar :size="60" key="cover" :src="userForm.avatar" @error="errorHandler">
                     </el-avatar>
                     <div class="avatar-mask">更换头像</div>
                   </div>
@@ -94,7 +96,7 @@
 
         </el-tab-pane>
 
-        <el-input v-model="searchKeyWord" placeholder="搜索视频" class="personal_search"></el-input>
+        <el-input v-show="isShowSearch" v-model="searchKeyWord" placeholder="搜索视频" class="personal_search"></el-input>
       </el-tabs>
     </div>
   </div>
@@ -102,7 +104,8 @@
 
 <script>
 import { getUserById, updateUser, uploadAvatar, sendCode, updatePwd } from '@/api/user.js'
-import { getVideosById, deleteVideo, getVideosBykeyword } from '@/api/video.js'
+import { getVideosById, deleteVideo, getVideosBykeyword, getCollectionVideos } from '@/api/video.js'
+import { deleteCollection } from '@/api/collection.js'
 import { mapMutations } from 'vuex'
 import VideoList from '@/components/VideoList.vue'
 
@@ -133,13 +136,15 @@ export default {
       // tab便签页
       activeName: 'first',
       // 我的视频页数据
+      isShowSearch: true,
       videos: null,
+      collections: null,
       activeIndex: '1',
       searchKeyWord: '',
       // 个人资料表单数据
       userForm: {
         username: '',
-        avatar: '',
+        avatar: this.$store.state.avatar ? this.$store.state.avatar : require('@/assets/noface.gif'),
         sex: 0
       },
       // 密码修改表单数据
@@ -188,7 +193,12 @@ export default {
       })
     },
     handleClick(tab, event) {
-      console.log(tab, event)
+      console.log(tab)
+      if (tab.index === '0') {
+        this.isShowSearch = true
+      } else {
+        this.isShowSearch = false
+      }
     },
     async updateIntro() {
       const user = {
@@ -215,6 +225,25 @@ export default {
         this.videos = this.videos.sort((a, b) => b.views - a.views)
       }
     },
+    // 获取用户收藏视频
+    async fetchUserCollections() {
+      const { data: res } = await getCollectionVideos(this.$store.state.userId)
+      console.log(res)
+      this.collections = res.data
+    },
+    // 取消收藏
+    async cancelCollection(userId, videoId, title) {
+      if (confirm('您确定要取消对 ' + title + ' 视频的收藏吗')) {
+        const { data: res } = await deleteCollection(userId, videoId)
+        console.log(res)
+        if (res.flag && res.data) {
+          this.$message.success(res.msg)
+          this.fetchUserCollections()
+        } else {
+          this.$message.error(res.msg)
+        }
+      }
+    },
     // 删除个人投稿视频
     async deleteVideo(id, title) {
       if (confirm('您确定要删除' + title + '吗')) {
@@ -222,10 +251,16 @@ export default {
         if (res.flag && res.data) {
           this.$message.success(res.msg)
           this.fetchVideos()
+          this.fetchUserCollections()
         } else {
           this.$message.error(res.msg)
         }
       }
+    },
+    // 图片加载失败
+    errorHandler() {
+      this.userForm.avatar = require('@/assets/noface.gif')
+      return true
     },
     // 个人资料表单事件
     async handleUploadAvatar({ file }) {
@@ -243,6 +278,7 @@ export default {
       if (res.flag && res.data) {
         this.$message.success(res.msg)
         this.userForm.avatar = res.data
+        console.log(this.userForm.avatar)
       } else {
         this.$message.error(res.msg)
       }
@@ -262,6 +298,7 @@ export default {
           if (res.flag && res.data) {
             this.$message.success(res.msg)
             // 更新成功修改vuex中的数据
+            this.setAvatar(res.data.avatar)
             this.setUserName(this.userForm.username)
             this.fetchUser()
           } else {
@@ -313,6 +350,7 @@ export default {
   created() {
     this.fetchUser()
     this.fetchVideos()
+    this.fetchUserCollections()
   },
   watch: {
     // 监听搜索视频框关键字

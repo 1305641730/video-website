@@ -15,6 +15,7 @@
               <i class="el-icon-view" />
               <span>{{ video.views }}</span>
               <button class="btn-delete" v-if="isShowDelete" @click.stop="handleDelete(video.id, video.title)"><i class="el-icon-delete"></i>删除</button>
+              <button class="btn-collection" v-if="isShowCollection" @click.stop="handleCollection($store.state.userId, video.id, video.title)">取消收藏</button>
             </div>
           </div>
         </el-card>
@@ -27,15 +28,25 @@
 export default {
   name: 'videolist-vue',
   props: {
-    videos: { default: [] },
+    videos: {
+      type: Array,
+      default: () => {
+        return []
+      }
+    },
     isDelete: {
+      type: Boolean,
+      default: false
+    },
+    isCollection: {
       type: Boolean,
       default: false
     }
   },
   data() {
     return {
-      isShowDelete: this.isDelete
+      isShowDelete: this.isDelete,
+      isShowCollection: this.isCollection
     }
   },
   methods: {
@@ -44,7 +55,13 @@ export default {
     },
     handleDelete(id, title) {
       this.$emit('handleDelete', id, title)
+    },
+    handleCollection(userId, videoId, title) {
+      this.$emit('handleCollection', userId, videoId, title)
     }
+  },
+  updated() {
+    console.log(this.videos)
   }
 }
 </script>
@@ -70,11 +87,13 @@ export default {
     > *:not(:first-child):not(span) {
       margin-left: 10px;
     }
-    .btn-delete {
+    .btn-delete,
+    .btn-collection {
       cursor: pointer;
       border: 0;
       background: none;
       font-size: 10px;
+      color: palevioletred;
     }
   }
   /deep/ .video-bottom {

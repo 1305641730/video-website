@@ -60,7 +60,7 @@
 
     <!-- 评论区 -->
     <!-- 一级评论 -->
-    <el-row :gutter="20" class="comment_area mt-1" v-for="(comment) in comments" :key="comment.id">
+    <el-row :gutter="20" class="comment_area mt-1" v-for="(comment) in commentsData" :key="comment.id">
       <el-col :span="2">
         <div class="grid-content bg-purple">
           <div class="demo-basic--circle">
@@ -179,6 +179,10 @@
         </div>
       </el-col>
     </el-row>
+    <div class="loading-state">
+      <span v-if="isLoading"><i class="el-icon-loading" />正在加载中....</span>
+      <span v-else>没有更多评论</span>
+    </div>
   </div>
 </template>
 
@@ -187,7 +191,11 @@ export default {
   name: 'comment-vue',
   props: {
     avatar: null,
-    comments: null
+    comments: null,
+    groupcount: {
+      type: Number,
+      default: 10
+    }
   },
   data() {
     return {
@@ -195,7 +203,12 @@ export default {
       comContent2: '',
       tempComment: null,
       isShowDialog2: false,
-      showDialogIndex: 0
+      showDialogIndex: 0,
+      isLoading: false,
+      commentsData: this.comments,
+      // 评论数据分组数据
+      obj: [], // 用来存放评论数组
+      objKey: 0 // 用来存放数组对象的下标
     }
   },
   methods: {
@@ -216,16 +229,64 @@ export default {
     },
     sendComment2() {
       this.$emit('sendComment2', this.tempComment, this.comContent2)
+    },
+    // 浏览器滚动监听事件
+    scrollBrowse() {
+      // this.$emit('scrollBrowse')
+      // 获取窗口高度
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
+      // 获取滚动的高度
+      const scrollHeight = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+      // 获取文档的高度
+      const docHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+
+      if (windowHeight + scrollHeight >= docHeight) {
+        // 触底加载后续内容
+        console.log('触底')
+        this.objKey++
+        if (this.objKey > this.obj.length - 1) {
+          this.isLoading = false
+        } else {
+          this.commentsData = this.commentsData.concat(this.obj[this.objKey]) // 合并后一组评论
+        }
+      }
+    }
+  },
+  created() {
+    // 初始化评论数据分组数据
+    this.obj = []
+    this.objKey = 0
+    // 将评论数据按 传过来的groupcount(默认10) 条一组方式进行分组
+    if (this.commentsData) {
+      if (this.commentsData.length > this.groupcount) {
+        this.isLoading = true
+        // 向上取整，一共多少组
+        for (let i = 0; i < Math.ceil(this.comments.length / this.groupcount); i++) {
+          this.obj[i] = this.comments.slice(this.groupcount * i, this.groupcount * i + this.groupcount)
+        }
+        this.commentsData = this.obj[this.objKey] // 初始加载前10条(第一组)
+      } else {
+        this.isLoading = false
+      }
+      console.log(this.commentsData)
     }
   },
   mounted() {
-    console.log(this.comments)
+    // 给窗口添加滚动事件
+    window.addEventListener('scroll', this.scrollBrowse)
+  },
+  beforeDestroy() {
+    // 移除窗口滚动事件
+    window.removeEventListener('scroll', this.scrollBrowse)
   }
 }
 </script>
 
 <style lang='less' scoped>
 .comment-container {
+  .el-row {
+    margin-top: 10px;
+  }
   .comment_title {
     padding: 20px 0 0;
   }
@@ -301,6 +362,13 @@ export default {
         cursor: pointer;
       }
     }
+  }
+  .loading-state {
+    height: 64px;
+    line-height: 64px;
+    font-size: 12px;
+    color: #9499a0;
+    text-align: center;
   }
 }
 </style>

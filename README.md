@@ -510,6 +510,27 @@ public class CrossConfiguration implements WebMvcConfigurer {
 
 > 原因：没有将 module 部署到 tomcat 中
 
+### 6. springmvc @RequestBody 接收多个对象参数
+
+* 参考文章：https://blog.csdn.net/weixin_43647393/article/details/112218804
+
+```java
+// controller层
+private ObjectMapper JackSon = new ObjectMapper();
+...
+@PostMapping("/collection")
+public ResObj addCollection(@RequestBody Map<String, Object> params) {
+    try {
+        Video video = JackSon.readValue(JackSon.writeValueAsString(params.get("video")), Video.class);
+        Collection collection = JackSon.readValue(JackSon.writeValueAsString(params.get("collection")), Collection.class);
+        boolean result = videoService.addCollection(video, collection);
+        return new ResObj(true, result? "收藏成功！": "收藏失败！", result);
+    } catch (Exception e) {
+        return new ResObj(true, e.getMessage(), null);
+    }
+}
+```
+
 ## 二、springmvc 一些功能实现
 
 ### 1. elementui 上传图片
@@ -1076,6 +1097,45 @@ public ResObj sendCode(@RequestParam String username, @RequestParam String email
 }
 ```
 
+封装成工具类后再使用：
+
+~~~java
+public class MailUtils {
+
+    public static void generateMailCode(JavaMailSender javaMailSender, String username, String emailReceiver, String emailSender, HttpServletRequest request) {
+        // 生成6为验证码
+        String Captcha = String.valueOf(new Random().nextInt(899999) + 100000);
+        System.out.println(username + "," + Captcha + "," + emailSender);
+        request.getSession().setAttribute(username, Captcha);
+//        System.out.println("session===" + request.getSession().getAttribute(username) + ",sessionID=" + request.getSession().getId());
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            // 发送人邮件地址
+            message.setFrom(emailSender);
+            message.setTo(emailReceiver);
+            message.setSubject("验证码");
+            message.setText("接收到的验证码为：" + Captcha);
+            javaMailSender.send(message);
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+}
+~~~
+
+```java
+// controller层
+@PostMapping("/sendcode")
+public ResObj sendCode(@RequestParam String username, @RequestParam String email, HttpSession session, HttpServletRequest request) {
+    try {
+        MailUtils.generateMailCode(javaMailSender, username, email, emailSender, request);
+        return new ResObj(true, "验证码发送成功，请注意查看邮箱！", true);
+    } catch (Exception e) {
+        return new ResObj(true, "验证码发送失败，请稍后再试！", false);
+    }
+}
+```
+
 > 注意： 
 >
 > ​	我的springmvc，springmvc的配置文件只扫描controller层，而spring配置文件扫描除controller以外的包，所以要想在controller中使用@Value注入mail.properties中的属性，则需要在springmvc的配置文件中加载mail.properties。
@@ -1129,7 +1189,9 @@ const { defineConfig } = require('@vue/cli-service')
 module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
-    proxyTable: {
+    host: '127.0.0.1',
+    port: 8081,
+    proxy: {
       '/api': {
         target: 'http://127.0.0.1:8080', 
         changeOrigin: true, // 接口跨域
@@ -1211,7 +1273,147 @@ jdbc.password=root
 </delete>
 ```
 
+### 6. SpringMVC+FFmpeg制作视频封面
 
+* 下载安装FFmpeg
+
+> 网址： http://www.ffmpeg.org/download.html
+
+![image-20220418160648203](README.assets/image-20220418160648203.png)
+
+![image-20220418160744968](README.assets/image-20220418160744968.png)
+
+> 下载后解压，然后配置环境变量。
+
+![image-20220418160954611](README.assets/image-20220418160954611.png)
+
+* 视频(文件)上传工具类
+
+~~~java
+public class FileUtils {
+
+    private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("/yyyy/MM/dd/");
+
+    public static String uploadSimpleFile(MultipartFile file, HttpServletRequest request, String storageFolder) throws IOException {
+        // 获取文件在服务器的存储位置 当前：../target/video_website_spring-1.0-NAPSHOT/
+        String realPath = request.getSession().getServletContext().getRealPath("/");
+        // realPath = realPath.replace("target\\video_website_spring-1.0-SNAPSHOT", "src" + File.separator + "main" + File.separator + "webapp");
+        // System.out.println("webapp====>" + realPath);
+        String originalName = file.getOriginalFilename();
+        String format = simpleDateFormat.format(new Date());
+        String storagePath = realPath + storageFolder + format;
+
+        File folder = new File(storagePath);
+        if(!folder.exists()) {
+            folder.mkdirs();
+        }
+        System.out.println(storagePath);
+
+        // 获取文件后缀名
+        String suffix = originalName.substring(originalName.lastIndexOf("."));
+        String newFileName = UUID.randomUUID().toString() + suffix;
+        System.out.println(newFileName);
+        file.transferTo(new File(folder, newFileName));
+
+        String url = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + "/" + storageFolder + format + newFileName;
+        return url;
+    }
+}
+~~~
+
+* 视频封面生成工具类
+
+~~~java
+public class FFmpegVideo {
+
+    // 设置了环境变量直接用ffmpeg即可
+    public static final String FFMPEG_PATH = "C:\\softwares\\ffmpeg-5.0.1-full_build\\bin\\ffmpeg.exe";
+    // 生成的视频封面路径(浏览器)
+    public static String VideoCoverResPath = null;
+
+    // 测试
+    public static void main(String[] ars){
+        final String convertFile="C:\\study\\video_website_master\\video_website_spring\\target\\video_website_spring-1.0-SNAPSHOT\\videos\\2022\\04\\18\\699055d6-b8ed-461d-bce3-3cfdbfe10e13.mp4";
+        videoCatchImg(convertFile,FFMPEG_PATH);
+    }
+
+    /**
+     * 截取视频图片
+     * @param videoPath
+     * @param ffmpegPath
+     * @return
+     */
+    public static int videoCatchImg(String videoPath, String ffmpegPath) {
+        File file = new File(videoPath);
+        if (!file.exists()) {
+            System.err.println("路径[" + videoPath + "]对应的视频文件不存在!");
+            return -1;
+        }
+        List<String> commands = new java.util.ArrayList<String>();
+        commands.add(ffmpegPath);
+        //输入文件
+        commands.add("-i");
+        commands.add(videoPath);
+        //输出文件若存在可以覆盖
+        commands.add("-y");
+        //指定图片编码格式
+        commands.add("-f");
+        commands.add("image2");
+        //设置截取视频第3秒时的画面
+        commands.add("-ss");
+        commands.add("3");
+        //截取的图片的存储路径
+        String coverPath = videoPath.substring(0, videoPath.lastIndexOf(".")) + "_cover.jpg";
+        commands.add(coverPath);
+        System.out.println("commands:"+commands);
+        try {
+            ProcessBuilder builder = new ProcessBuilder();
+            builder.redirectErrorStream(true); // //将错误流中的数据合并到输入流
+            builder.command(commands);
+            Process process = builder.start();
+
+            InputStream inputStream = process.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String s = null;
+            while((s = reader.readLine()) != null) {
+                System.out.println(s);
+            }
+
+            int status = process.waitFor();
+            // System.out.println("status=======" + status);
+            return status;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    public static String getFFmpegPath(String videoUrl) {
+        return videoUrl.substring(0, videoUrl.lastIndexOf(".")) + "_cover.jpg";
+    }
+}
+~~~
+
+* controller层调用
+
+```java
+@PostMapping("/info")
+public ResObj uploadVideoInfo(@RequestBody Video video, HttpServletRequest request) {
+    // // 如果用户没有上传封面则生成封面
+    if(video.getVideoCoverUrl() == null || video.getVideoCoverUrl().equals("")) {
+        String realPath = request.getSession().getServletContext().getRealPath("/");
+        String serverAdd = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+        String VideoPath = video.getVideoUrl().replace(serverAdd, realPath);
+        System.out.println("VideoPath" + VideoPath);
+        int status = FFmpegVideo.videoCatchImg(VideoPath, FFmpegVideo.FFMPEG_PATH);
+        if(status != -1) {
+            video.setVideoCoverUrl(FFmpegVideo.getFFmpegPath(video.getVideoUrl()));
+        }
+    }
+    boolean result = videoService.saveVideo(video);
+    return new ResObj(true, result? "视频上传成功！": "上传视频失败，请重新上传！", result);
+}
+```
 
 ## 前端的一些留下的问题
 
