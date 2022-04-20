@@ -15,46 +15,49 @@ const router = new VueRouter({
       children: [
         // 视频上传页
         {
-          path: 'upload',
+          path: '/upload',
           component: () => import('@/views/Home/Upload/Upload.vue')
         },
         // 视频列表页
         {
           name: 'videos',
-          path: 'videos',
+          path: '/videos',
           component: () => import('@/views/Home/Video/Video.vue')
         },
         // 视频搜索页
         {
           name: 'videosearch',
-          path: 'search/:content',
+          path: '/search/:content',
           component: () => import('@/views/Home/VideoSearch/VideoSearch.vue'),
           props: true
         },
         // 视频播放页
         {
-          path: 'detail/:id',
+          path: '/detail/:id',
           component: () => import('@/views/Home/VideoDetail/VideoDetail.vue'),
           props: true
         },
         // 个人中心页
         {
           name: 'personal',
-          path: 'personal',
+          path: '/personal',
           component: () => import('@/views/Home/Personal/Personal.vue')
         },
         // 消息界面
         {
-          path: ':userid/message',
+          path: '/:userid/message',
+          redirect: '/:userid/message/sysinfo',
           component: () => import('@/views/Home/Message/Message.vue'),
           children: [
             {
-              path: '/sysinfo',
-              component: () => import('@/views/Home/Message/Message.vue')
+              name: 'sysinfo',
+              path: '/:userid/message/sysinfo',
+              component: () => import('@/views/Home/Message/SysInfo/SysInfo.vue')
             },
             {
-              path: '/replay',
-              component: () => import('@/views/Home/Message/Message.vue')
+              name: 'reply',
+              path: '/:userid/message/reply',
+              component: () => import('@/views/Home/Message/Reply/Reply.vue')
             }
           ]
         }
@@ -74,8 +77,8 @@ const router = new VueRouter({
 })
 
 router.beforeEach(async(to, from, next) => {
-  const pathArr = ['/videos', '/upload', '/']
-  const nameArr = ['personal']
+  const pathArr = ['/upload']
+  const nameArr = ['personal', 'sysinfo', 'reply']
   if (pathArr.indexOf(to.path) !== -1 || nameArr.indexOf(to.name) !== -1) {
     const token = localStorage.getItem('token')
     if (token) {

@@ -65,14 +65,14 @@
         <div class="grid-content bg-purple">
           <div class="demo-basic--circle">
             <div class="block">
-              <el-avatar :size="50" :src="!comment.comUser.avatar? require('@/assets/noface.gif'): comment.comUser.avatar"></el-avatar>
+              <el-avatar :size="50" :src="!comment.user.avatar? require('@/assets/noface.gif'): comment.user.avatar"></el-avatar>
             </div>
           </div>
         </div>
       </el-col>
       <el-col :span="22">
         <div class="grid-content bg-purple">
-          <p class="com_user">{{ comment.comUser.username }}</p>
+          <p class="com_user">{{ comment.user.username }}</p>
           <p class="com_content">{{ comment.content }}</p>
           <div class="com_bottom">
             <span class="com_date">{{ $moment(comment.comDate).format('YYYY-MM-DD HH:mm:ss') }}</span>
@@ -91,17 +91,17 @@
               <div class="grid-content bg-purple">
                 <div class="demo-basic--circle">
                   <div class="block">
-                    <el-avatar :size="50" :src="!comment2.comUser.avatar? require('@/assets/noface.gif'): comment2.comUser.avatar"></el-avatar>
+                    <el-avatar :size="50" :src="!comment2.user.avatar? require('@/assets/noface.gif'): comment2.user.avatar"></el-avatar>
                   </div>
                 </div>
               </div>
             </el-col>
             <el-col :span="22">
               <div class="grid-content bg-purple">
-                <p class="com_user">{{ comment2.comUser.username }}</p>
+                <p class="com_user">{{ comment2.user.username }}</p>
                 <p class="com_content">
                   <span v-if="comment2.comUserId">回复
-                    <a href="#" class="replay_user_a">@{{ comment2.comUser.username }}</a>
+                    <a href="#" class="replay_user_a">@{{ comment2.comUserName }}</a>
                   </span>:
                   <span>{{ comment2.content }}</span>
                 </p>
@@ -111,7 +111,7 @@
                     <i class="el-icon-thumb"></i>
                     <span>{{ comment2.stars? comment2.stars: 0 }}</span>
                   </div>
-                  <span class="btn_replay" @click="showDialog(comment.id, comment2)">回复</span>
+                  <span class="btn_replay" @click="showDialog2(comment.id, comment2.id, comment2)">回复</span>
                 </div>
               </div>
             </el-col>
@@ -135,7 +135,7 @@
             <!-- 评论对话框 -->
             <el-col :span="20">
               <div class="grid-content">
-                <el-input type="textarea" :rows="2" :placeholder="'回复 @' + tempComment.comUser.username + ':'" v-model="comContent2">
+                <el-input type="textarea" :rows="2" :placeholder="'回复 @' + tempComment.comUserName + ':'" v-model="comContent2">
                 </el-input>
               </div>
             </el-col>
@@ -227,6 +227,13 @@ export default {
       this.tempComment.commentId = commentId
       this.showDialogIndex = commentId
     },
+    showDialog2(commentId, comCommentId, comment) {
+      this.isShowDialog2 = true
+      this.tempComment = comment
+      this.tempComment.comCommentId = comCommentId
+      this.tempComment.commentId = commentId
+      this.showDialogIndex = commentId
+    },
     sendComment2() {
       this.$emit('sendComment2', this.tempComment, this.comContent2)
     },
@@ -249,7 +256,7 @@ export default {
         } else {
           this.commentsData = this.commentsData.concat(this.obj[this.objKey]) // 合并后一组评论
         }
-        console.log(this.commentsData)
+        // console.log(this.commentsData)
       }
     }
   },

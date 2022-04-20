@@ -451,6 +451,126 @@ export default {
 
 > 注意：此时要为其它元素设置权重z-index，否则其它元素无法显示。
 
+### 20. Css 设置部分布局为浏览器高度并出现滚动条
+
+![image-20220420123240975](README.assets/image-20220420123240975.png)
+
+> 问题描述：我想设置上方红色区域高度为浏览器高度。
+>
+> 解决： 使用弹性盒子布局，设置红色区域`flex:1`，并设置外层`div`相对于浏览器定位，高度100%。
+
+~~~vue
+<div class="conatiner">
+	<div class="top"></div>
+	<div class="main"></div>
+</div>
+...
+<style>
+.container {
+	position: fixed;
+	left: xxx px;
+	top: xxx px;
+	width: xxx px;
+	height: 100%;
+    display: flex;
+    flex-direction: column;
+    .main {
+        flex: 1
+    }
+}
+<style>
+~~~
+
+### 21. 使用element-ui的infiniteScroll组件实现滚动加载
+
+~~~vue
+<template>
+  <div class="sysinfo-container">
+    ...
+    <div class="infinite-list-wrapper" style="overflow:auto">
+      <ul class="list" v-infinite-scroll="load" :infinite-scroll-disabled="disabled">
+        <el-card class="box-card-sys" :body-style="{ padding: '10px'}" v-for="sys in sysinfos" :key="sys.id">
+          <div>
+            <span class="sys-title">{{ sys.title }}</span>
+            <span class="sys-date">{{ $moment(sys.sysDate).format('YYYY年MM月DD日 HH:mm:ss') }}</span>
+          </div>
+          <div>
+            <p class="sys-content">{{ sys.content }}<el-link :href="sys.link" icon="el-icon-link"><span>网页链接</span></el-link>
+            </p>
+          </div>
+        </el-card>
+      </ul>
+      <p v-if="loading">加载中...</p>
+      <p v-if="noMore">没有更多了</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import { getAllSysInfo } from '@/api/sysinfo.js'
+
+export default {
+  name: 'sysinfo-vue',
+  data() {
+    return {
+      sysinfos: null,
+      // 数据分组
+      obj: [], // 数据分组的数组
+      objKey: 0, // 第几组
+      // 每次加载多少条(每组多少条)
+      groupcount: 10,
+      // 是否加载
+      loading: false,
+      // 是否到底(即数据加载完毕)
+      noMore: false,
+      // 是否可j继续滚动加载
+      disabled: false
+    }
+  },
+  methods: {
+    async fetSysInfos() {
+      // 初始化切割数据数组的相关数据
+      this.obj = []
+      this.objKey = 0
+
+      const { data: res } = await getAllSysInfo()
+      console.log(res)
+      if (res.flag && res.data) {
+        this.sysinfos = res.data
+        // 按groupcount切割数组，分组(每组groupcount条数据)
+        for (let i = 0; i < Math.ceil(this.sysinfos.length / this.groupcount); i++) {
+          this.obj[i] = this.sysinfos.slice(i * this.groupcount, i * this.groupcount + this.groupcount)
+        }
+        // 预加载前 groupcount(默认10)条
+        this.sysinfos = this.obj[this.objKey]
+      }
+    },
+    load() {
+      // 首次加载
+      this.loading = true
+      setTimeout(() => {
+        this.objKey++
+        // 如果是最后一组，停止加载
+        if (this.objKey > this.obj.length - 1) {
+          this.loading = false
+          this.noMore = true
+          this.disabled = true
+        } else {
+          // 不是最后一组，继续添加下一组
+          this.sysinfos = this.sysinfos.concat(this.obj[this.objKey])
+          this.loading = false
+        }
+      }, 1000)
+    }
+  },
+  created() {
+    this.fetSysInfos()
+  }
+}
+</script>
+...
+~~~
+
 ## 前端的一些留下的问题
 
 ### 1. vue 中 proxy 的作用

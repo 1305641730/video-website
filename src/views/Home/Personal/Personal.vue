@@ -30,14 +30,15 @@
 
           <VideoList :videos="videos" :total="pageInfo.total" :isDelete="true" @handleDelete="deleteVideo" @handleCurrentChange="myVideoPageChange"></VideoList>
           <!-- 个人投稿视频数为0时显示 -->
-          <div class="personal-video-mask" v-if="videos === null || videos.length === 0">
-            还没有投稿视频喔，<router-link to="/upload">立即投稿</router-link>
-          </div>
+          <el-empty class="personal-video-mask" v-if="videos === null || videos.length === 0" description="还没有投稿视频喔">
+            <router-link to="/upload">立即投稿</router-link>
+          </el-empty>
         </el-tab-pane>
 
         <!-- 收藏 -->
         <el-tab-pane label="收藏" name="second">
           <VideoList :videos="collections" :isCollection="true" :total="pageInfo.total" @handleCollection="cancelCollection" @handleCurrentChange="myCollectionPageChange"></VideoList>
+          <el-empty v-if="!collections || collections.length === 0" description="暂无收藏视频"></el-empty>
         </el-tab-pane>
 
         <!-- 个人资料 -->
@@ -511,8 +512,6 @@ export default {
     }
   }
   .personal-video-mask {
-    text-align: center;
-    color: #99a2aa;
     a {
       color: #00a1d6;
     }

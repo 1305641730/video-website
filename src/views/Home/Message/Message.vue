@@ -3,8 +3,8 @@
     <div class="bg"></div>
     <div class="main-body">
       <div class="message-left">
-        <router-link class="item" to="/sysinfo"><i class="el-icon-message"></i><span>系统消息</span></router-link>
-        <router-link class="item" to="/reply"><i class="el-icon-chat-dot-round"></i><span>回复我的</span></router-link>
+        <router-link class="item" :to="{name: 'sysinfo'}"><i class="el-icon-message"></i><span>系统消息</span></router-link>
+        <router-link class="item" :to="{name: 'reply'}"><i class="el-icon-chat-dot-round"></i><span>回复我的</span></router-link>
       </div>
       <div class="message-main">
         <router-view></router-view>
@@ -55,6 +55,9 @@ export default {
     z-index: 999;
     .item {
       margin: 10px 0;
+      span {
+        margin-left: 5px;
+      }
     }
     .item:hover {
       color: #2faee3;
@@ -63,7 +66,7 @@ export default {
   .message-main {
     width: 1000px;
     height: 100%;
-    background-color: #2faee3;
+    background-color: rgba(255, 255, 255, 0.5);
     z-index: 999;
   }
 }

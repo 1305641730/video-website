@@ -25,6 +25,7 @@
 import Dplayer from 'dplayer'
 import { getVideoById, addViews, addStars, addCollections } from '@/api/video.js'
 import { sendComments, getComments } from '@/api/comment.js'
+import { getUserById } from '@/api/user.js'
 import Comment from '@/components/Comment.vue'
 
 export default {
@@ -111,7 +112,7 @@ export default {
       // 去除评论内容首位空格和换行
       comment = comment.replace(/^\s+|\s+$/g, '')
       const resComment = {
-        comUser: {
+        user: {
           id: this.$store.state.userId
         },
         videoId: this.id,
@@ -134,32 +135,45 @@ export default {
       console.log(res)
       if (res.flag && res.data.length !== 0 && res.data) {
         this.comments = res.data
-        // 对评论数据加工为二级
-        const data = []
-        for (let i = 0; i < res.data.length; i++) {
-          const comment = res.data[i]
-          comment.child = []
-          for (let j = 0; j < res.data.length; j++) {
-            const comment2 = res.data[j]
-            if (comment2.commentId === comment.id) {
-              comment.child.push(comment2)
-            }
-          }
-          data.push(comment)
-        }
-        this.comments = data.filter(item => item.commentId === null)
-        this.refreshComment()
+        this.fetchComUserName()
       }
+    },
+    // 获取所有回复评论回复人姓名
+    fetchComUserName() {
+      this.comments.forEach(async comment => {
+        if (comment.comUserId !== null) {
+          const { data: res } = await getUserById(comment.comUserId)
+          if (res.flag && res.data) {
+            comment.comUserName = res.data.username
+          }
+        }
+      })
+      // 对评论数据加工为二级
+      const data = []
+      for (let i = 0; i < this.comments.length; i++) {
+        const comment = this.comments[i]
+        comment.child = []
+        for (let j = 0; j < this.comments.length; j++) {
+          const comment2 = this.comments[j]
+          if (comment2.commentId === comment.id) {
+            comment.child.push(comment2)
+          }
+        }
+        data.push(comment)
+      }
+      this.comments = data.filter(item => item.commentId === null)
+      this.refreshComment()
     },
     // 二级评论回复
     async handleComment2(comment, content) {
       // 去除评论内容首位空格和换行
       content = content.replace(/^\s+|\s+$/g, '')
       const resComment = {
-        comUser: {
+        user: {
           id: this.$store.state.userId
         },
-        comUserId: comment.comUser.id,
+        comUserId: comment.user.id,
+        comCommentId: comment.comCommentId,
         commentId: comment.commentId,
         videoId: this.id,
         content: content,
@@ -203,8 +217,8 @@ export default {
   }
   .dplayer {
     flex: 1;
-    width: 42rem;
-    height: 28rem;
+    width: 50rem;
+    height: 30rem;
   }
   .video-star-co-view {
     margin-top: 15px;

@@ -55,12 +55,11 @@ export default {
     },
     // 跳转至 系统消息 界面
     toSystemInfo() {
-      // this.$router.push(this.$store.state.userId + '/message/sysinfo')
-      this.$router.push(this.$store.state.userId + '/message')
+      this.$router.push({ name: 'sysinfo', params: { userid: this.$store.state.userId } })
     },
     // 跳转至 回复我的 消息界面
     toReplyToMe() {
-      this.$router.push(this.$store.state.userId + '/message/replay')
+      this.$router.push({ name: 'reply', params: { userid: this.$store.state.userId } })
     }
   },
   computed: {
