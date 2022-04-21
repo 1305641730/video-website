@@ -14,14 +14,28 @@
     </div>
     <!-- 视频列表 -->
     <div class="video-list">
+      <div class="video-list-top">
+        <i class="el-icon-video-camera"></i>
+        <span>最新推荐</span>
+      </div>
       <VideoList :videos="videos" :total="total" @handleCurrentChange="CurrentPageChange"></VideoList>
+    </div>
+    <!-- 直播列表 -->
+    <div class="video-list">
+      <div class="video-list-top">
+        <i class="el-icon-video-camera-solid"></i>
+        <span>直播间</span>
+      </div>
+      <LiveList :lives="lives" :total="total2" @handleCurrentChange="CurrentPageChange"></LiveList>
     </div>
   </div>
 </template>
 
 <script>
 import VideoList from '@/components/VideoList.vue'
+import LiveList from '@/components/LiveList.vue'
 import { getVideos, getVideoTypes } from '@/api/video.js'
+import { getLives } from '@/api/live.js'
 
 export default {
   name: 'video-vue',
@@ -30,13 +44,20 @@ export default {
       imglist: [require('@/assets/carousel.jpg'), require('@/assets/carousel2.jpg'), require('@/assets/carousel3.jpg'), require('@/assets/carousel4.jpg')],
       videos: null,
       tags: [],
+      // 视频分页数据
       pageNum: 1,
       pageSize: 12,
-      total: 0
+      total: 0,
+      // 直播间分页数据
+      lives: null,
+      pageNum2: 1,
+      pageSize2: 12,
+      total2: 0
     }
   },
   components: {
-    VideoList
+    VideoList,
+    LiveList
   },
   methods: {
     async fetchVideos() {
@@ -49,6 +70,12 @@ export default {
       const { data: res } = await getVideoTypes()
       this.tags = res.data
     },
+    async fetchAllLives() {
+      const { data: res } = await getLives(this.pageNum2, this.pageSize2)
+      console.log(res)
+      this.lives = res.data.list
+      this.total2 = res.data.total
+    },
     CurrentPageChange(currentPage) {
       console.log('当前页：' + currentPage)
       this.pageNum = currentPage
@@ -58,6 +85,7 @@ export default {
   created() {
     this.fetchVideos()
     this.fetchVideoTypes()
+    this.fetchAllLives()
   }
 }
 </script>
@@ -79,6 +107,18 @@ export default {
   .el-tag {
     width: 80px;
     text-align: center;
+  }
+}
+.video-list-top {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  i {
+    font-size: 20px;
+  }
+  span {
+    margin-left: 10px;
   }
 }
 .video-list {

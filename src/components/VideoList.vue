@@ -69,9 +69,6 @@ export default {
     handleCurrentChange(val) {
       this.$emit('handleCurrentChange', val)
     }
-  },
-  mounted() {
-    console.log(this.isShow)
   }
 }
 </script>

@@ -97,6 +97,41 @@
 
         </el-tab-pane>
 
+        <!-- 我的直播间 -->
+        <el-tab-pane label="我的直播间" name="fifth">
+          <el-card class="personal-live" v-if="!isCloseLive">
+            <div>
+              <span>推流地址：</span>
+              <span>{{ live.streamAddr2 }}</span>
+            </div>
+            <div class="upload-cover">
+              <span>封面: </span>
+              <el-upload list-type="picture-card" action="#" :http-request="handleUploadImg" :show-file-list="false">
+                <img v-if="live.liveCover" :src="live.liveCover" class="avatar" style="width: 100%; height: 100%" />
+                <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+              </el-upload>
+            </div>
+            <div>
+              直播间名称：
+              <el-input v-model="live.livename" placeholder="请输入内容"></el-input>
+            </div>
+            <div>
+              <span>直播类型：</span>
+              <el-select v-model="live.type.id" placeholder="请选择">
+                <el-option v-for="item in types" :key="item.id" :label="item.name" :value="item.id">
+                </el-option>
+              </el-select>
+            </div>
+            <div>
+              <el-button type="primary" @click="saveCueentLiveData">保存</el-button>
+              <el-button type="danger" @click="closeCurrentLive">关闭直播间</el-button>
+            </div>
+          </el-card>
+          <el-card class="personal-live personal-live-close" v-else>
+            <el-button type="success" @click="openUserLive">开启直播间</el-button>
+          </el-card>
+        </el-tab-pane>
+
         <el-input v-show="isShowSearch" v-model="searchKeyWord" placeholder="搜索视频" class="personal_search"></el-input>
       </el-tabs>
     </div>
@@ -105,8 +140,9 @@
 
 <script>
 import { getUserById, updateUser, uploadAvatar, sendCode, updatePwd } from '@/api/user.js'
-import { getVideosById, deleteVideo, getVideosByUserAndTitle, getCollectionVideos } from '@/api/video.js'
+import { getVideosById, deleteVideo, getVideosByUserAndTitle, getCollectionVideos, uploadImg } from '@/api/video.js'
 import { deleteCollection } from '@/api/collection.js'
+import { getLiveByUserId, saveLiveData, getAllLiveTypes, openLive } from '@/api/live.js'
 import { mapMutations } from 'vuex'
 import VideoList from '@/components/VideoList.vue'
 
@@ -176,7 +212,18 @@ export default {
           { validator: validateRePass, trigger: 'blur' },
           { min: 3, max: 16, message: '数字、字母、汉字、符号加起来不能超过16个', trigger: 'blur' }
         ]
-      }
+      },
+      // 个人直播间数据
+      live: {
+        streamAddr2: '',
+        liveCover: '',
+        livename: '',
+        type: {
+          id: 0
+        }
+      },
+      types: null,
+      isCloseLive: true
     }
   },
   methods: {
@@ -199,7 +246,6 @@ export default {
       })
     },
     handleClick(tab, event) {
-      console.log(tab)
       if (tab.index === '0') {
         this.isShowSearch = true
       } else {
@@ -366,12 +412,110 @@ export default {
           return false
         }
       })
+    },
+    // 获取当前用户直播间数据
+    async fetchLiveData() {
+      const { data: res } = await getLiveByUserId(this.$store.state.userId)
+      console.log(res)
+      if (res.flag && res.data) {
+        this.live = res.data
+        if (this.live.liveStatus === 0) {
+          this.isCloseLive = false
+        } else {
+          this.isCloseLive = true
+        }
+      } else {
+        this.isCloseLive = true
+      }
+    },
+    // 获取所有直播视频类型
+    async fetchAllLiveTypes() {
+      const { data: res } = await getAllLiveTypes()
+      console.log(res)
+      if (res.flag && res.data) {
+        this.types = res.data
+      }
+    },
+    // 上传直播封面
+    async handleUploadImg({ file }) {
+      console.log(file)
+      const isImage = ['png', 'jpeg', 'jpg', 'bmp', 'gif', 'webp', 'psd', 'svg', 'tiff']
+      const formData = new FormData()
+      const arr = file.name.split('.')
+      const suffix = arr[arr.length - 1]
+      if (isImage.indexOf(suffix) === -1) {
+        return this.$message.error('文件格式错误')
+      }
+      formData.append('file', file)
+      const { data: res } = await uploadImg(formData)
+      console.log(res.data)
+      this.live.liveCover = res.data
+    },
+    // 保存当前直播间数据
+    async saveCueentLiveData() {
+      const { data: res } = await saveLiveData(this.live)
+      console.log(res)
+      if (res.flag && res.data) {
+        this.$message.success(res.msg)
+      } else {
+        this.$message.error(res.msg)
+      }
+    },
+    // 开启直播间
+    async openUserLive() {
+      const { data: res } = await getLiveByUserId(this.$store.state.userId)
+      console.log('openLive=========' + res.data)
+      console.log(res)
+      if (res.flag && res.data) {
+        // 如果直播间存在则修改状态
+        const { data: res1 } = await saveLiveData({
+          id: res.data.id,
+          liveStatus: 0
+        })
+        if (res1.flag && res1.data) {
+          this.$message.success('开启直播成功!')
+          this.fetchLiveData()
+        } else {
+          this.$message.error('开启直播失败，请稍后再试!')
+        }
+      } else {
+        // 如果直播间不存在则重新创建
+        const { data: res2 } = await openLive({
+          user: {
+            id: this.$store.state.userId,
+            username: this.$store.state.userName
+          }
+        })
+        if (res2.flag && res2.data) {
+          this.isCloseLive = false
+          this.$message.success(res2.msg)
+          this.fetchLiveData()
+        } else {
+          this.$message.error(res2.msg)
+        }
+      }
+    },
+    // 关闭直播间
+    async closeCurrentLive() {
+      const { data: res } = await saveLiveData({
+        id: this.live.id,
+        liveStatus: 1
+      })
+      console.log(res)
+      if (res.flag && res.data) {
+        this.$message.success('直播间已关闭！')
+        this.fetchLiveData()
+      } else {
+        console.log(res.msg)
+      }
     }
   },
   created() {
     this.fetchUser()
     this.fetchVideos()
     this.fetchUserCollections()
+    this.fetchLiveData()
+    this.fetchAllLiveTypes()
   },
   watch: {
     // 监听搜索视频框关键字
@@ -515,6 +659,57 @@ export default {
     a {
       color: #00a1d6;
     }
+  }
+  .personal-live {
+    width: 600px;
+    margin: 0 auto;
+    .upload-cover {
+      display: flex;
+      flex-direction: row;
+      margin-top: 10px;
+      span {
+        width: 90px;
+      }
+      div {
+        margin-left: 10px;
+      }
+      /deep/ .el-upload--picture-card {
+        width: 400px;
+      }
+    }
+    .el-input {
+      width: 400px;
+    }
+    div:nth-child(1) {
+      span:nth-child(2) {
+        margin-left: 20px;
+        font-size: 12px;
+        color: #666;
+      }
+    }
+    div:nth-child(3),
+    div:nth-child(4),
+    div:nth-child(5) {
+      margin-top: 15px;
+    }
+    div:nth-child(4) {
+      /deep/ .el-select {
+        margin-left: 20px;
+      }
+    }
+    div:nth-child(5) {
+      margin-left: 100px;
+      .el-button:nth-child(2) {
+        margin-left: 50px;
+      }
+    }
+  }
+  .personal-live-close {
+    height: 385px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
 }
 </style>

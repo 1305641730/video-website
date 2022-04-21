@@ -60,6 +60,13 @@ const router = new VueRouter({
               component: () => import('@/views/Home/Message/Reply/Reply.vue')
             }
           ]
+        },
+        // 直播界面
+        {
+          name: 'live',
+          path: '/live/:id',
+          component: () => import('@/views/Home/Live/Live.vue'),
+          props: true
         }
       ]
     },
